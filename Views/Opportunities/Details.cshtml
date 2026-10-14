@@ -1,0 +1,152 @@
+@model AcxiomCRM.Models.Opportunity
+@{
+    ViewData["Title"] = $"Opportunity: {Model.OpportunityName}";
+    var stages = new[] { "Qualification", "Proposal", "Negotiation", "Won", "Lost" };
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <div class="d-flex align-items-center gap-2 mb-1">
+            <h2 class="fw-bold mb-0">@Model.OpportunityName</h2>
+            <span class="badge @(Model.Status == "Won" ? "bg-success" : (Model.Status == "Lost" ? "bg-danger" : "bg-primary"))">
+                @Model.Status
+            </span>
+        </div>
+        <p class="text-muted mb-0">
+            Account: <strong>@(Model.Customer?.CustomerName ?? "General Prospect")</strong> &bull;
+            Assigned: <strong>@(Model.AssignedUser?.FullName ?? "Unassigned")</strong>
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <a asp-action="Edit" asp-route-id="@Model.OpportunityId" class="btn btn-outline-primary">
+            <i class="bi bi-pencil me-1"></i> Edit
+        </a>
+        <a asp-controller="FollowUps" asp-action="Create" asp-route-opportunityId="@Model.OpportunityId" class="btn btn-primary">
+            <i class="bi bi-calendar-plus me-1"></i> Schedule Follow-Up
+        </a>
+        <a asp-action="Index" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+</div>
+
+<!-- Stage Progression Bar (Section 4.8) -->
+<div class="crm-card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="small fw-bold text-muted text-uppercase">Sales Cycle Progression</span>
+        <span class="small fw-bold text-primary">Current Stage: @Model.Stage</span>
+    </div>
+    <div class="btn-group w-100" role="group">
+        @foreach (var stage in stages)
+        {
+            bool isCurrent = Model.Stage == stage;
+            <form asp-action="UpdateStage" asp-route-id="@Model.OpportunityId" asp-route-stage="@stage" method="post" class="flex-grow-1">
+                <button type="submit" class="btn w-100 rounded-0 @(isCurrent ? (stage == "Won" ? "btn-success" : (stage == "Lost" ? "btn-danger" : "btn-primary")) : "btn-outline-secondary")">
+                    @stage
+                </button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Opportunity Metrics Overview -->
+    <div class="col-12 col-lg-5">
+        <div class="crm-card p-4 mb-4">
+            <h5 class="fw-bold mb-3 border-bottom pb-2"><i class="bi bi-cash-stack text-success me-2"></i> Deal Valuation & Metrics</h5>
+
+            <div class="row g-3 mb-3">
+                <div class="col-6">
+                    <label class="text-muted small fw-semibold">Contract Amount</label>
+                    <div class="fs-4 fw-bold text-success">@Model.Amount.ToString("C0")</div>
+                </div>
+                <div class="col-6">
+                    <label class="text-muted small fw-semibold">Win Probability</label>
+                    <div class="fs-4 fw-bold text-primary">@Model.Probability%</div>
+                </div>
+                <div class="col-12 p-3 bg-light rounded border">
+                    <label class="text-muted small fw-semibold">Weighted Pipeline Value (Section 4.8)</label>
+                    <div class="fs-4 fw-bold text-dark">@Model.WeightedValue.ToString("C2")</div>
+                    <small class="text-muted">Formula: Amount ($@Model.Amount:N0) &times; Probability (@Model.Probability%) / 100</small>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="text-muted small fw-semibold">Expected Close Date</label>
+                <div class="fw-medium">
+                    <i class="bi bi-calendar-event me-1 text-primary"></i>@Model.ExpectedCloseDate.ToString("MMMM dd, yyyy")
+                </div>
+            </div>
+
+            @if (Model.Customer != null)
+            {
+                <div class="mb-3">
+                    <label class="text-muted small fw-semibold">Customer Account</label>
+                    <div class="fw-medium">
+                        <a asp-controller="Customers" asp-action="Details" asp-route-id="@Model.CustomerId" class="text-decoration-none">
+                            <i class="bi bi-building me-1"></i>@Model.Customer.CustomerName
+                        </a>
+                    </div>
+                </div>
+            }
+
+            @if (!string.IsNullOrEmpty(Model.Notes))
+            {
+                <div class="mb-3">
+                    <label class="text-muted small fw-semibold">Scope & Notes</label>
+                    <div class="p-2 bg-light rounded text-muted small">@Model.Notes</div>
+                </div>
+            }
+
+            <div class="pt-3 border-top mt-3 small text-muted">
+                Created: <strong>@Model.CreatedDate.ToString("g")</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Related Follow-Ups -->
+    <div class="col-12 col-lg-7">
+        <div class="crm-card">
+            <div class="card-header-clean">
+                <h6 class="fw-bold mb-0"><i class="bi bi-calendar-check text-success me-2"></i> Follow-Up Activity Schedule</h6>
+                <a asp-controller="FollowUps" asp-action="Create" asp-route-opportunityId="@Model.OpportunityId" class="btn btn-sm btn-outline-success">
+                    <i class="bi bi-plus"></i> Schedule
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-modern mb-0">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.FollowUps.Any())
+                        {
+                            foreach (var f in Model.FollowUps)
+                            {
+                                <tr>
+                                    <td class="fw-medium">@f.Subject</td>
+                                    <td>@f.FollowUpDate.ToString("g")</td>
+                                    <td><span class="badge bg-light text-dark border">@f.FollowUpType</span></td>
+                                    <td>
+                                        <span class="badge @(f.Status == "Completed" ? "badge-subtle-success" : (f.Status == "Planned" ? "badge-subtle-warning" : "badge-subtle-danger"))">
+                                            @f.Status
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr><td colspan="4" class="text-center py-4 text-muted">No follow-ups recorded for this opportunity yet.</td></tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

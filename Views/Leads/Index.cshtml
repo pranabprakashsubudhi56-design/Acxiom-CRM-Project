@@ -1,0 +1,208 @@
+@model IEnumerable<AcxiomCRM.Models.Lead>
+@{
+    ViewData["Title"] = "Lead Management";
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalItems = ViewBag.TotalItems ?? 0;
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">Lead Management</h2>
+        <p class="text-muted mb-0">Capture prospective leads, qualify, assign sales executives, and convert to customers.</p>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-primary shadow-sm">
+            <i class="bi bi-funnel-fill me-1"></i> Add New Lead
+        </a>
+    </div>
+</div>
+
+<!-- Search and Filter Bar (Section 17.13) -->
+<div class="crm-card p-3 mb-4">
+    <form asp-action="Index" method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-4">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control border-start-0" placeholder="Search lead name, company, email, phone..." />
+            </div>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="New" selected="@(ViewBag.Status == "New")">New</option>
+                <option value="Contacted" selected="@(ViewBag.Status == "Contacted")">Contacted</option>
+                <option value="Qualified" selected="@(ViewBag.Status == "Qualified")">Qualified</option>
+                <option value="Unqualified" selected="@(ViewBag.Status == "Unqualified")">Unqualified</option>
+                <option value="Converted" selected="@(ViewBag.Status == "Converted")">Converted</option>
+                <option value="Lost" selected="@(ViewBag.Status == "Lost")">Lost</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="priority" class="form-select">
+                <option value="">All Priorities</option>
+                <option value="Low" selected="@(ViewBag.Priority == "Low")">Low</option>
+                <option value="Medium" selected="@(ViewBag.Priority == "Medium")">Medium</option>
+                <option value="High" selected="@(ViewBag.Priority == "High")">High</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="assignedTo" class="form-select" asp-items="ViewBag.Users">
+                <option value="">All Executives</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Leads Data Table -->
+<div class="crm-card">
+    <div class="table-responsive">
+        <table class="table table-modern mb-0">
+            <thead>
+                <tr>
+                    <th>Lead Code</th>
+                    <th>Lead Name</th>
+                    <th>Company</th>
+                    <th>Contact</th>
+                    <th>Source</th>
+                    <th>Status</th>
+                    <th>Priority</th>
+                    <th>Expected Value</th>
+                    <th>Assigned To</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        <tr>
+                            <td>
+                                <span class="badge bg-light text-primary border fw-bold">@item.LeadCode</span>
+                            </td>
+                            <td>
+                                <a asp-action="Details" asp-route-id="@item.LeadId" class="fw-bold text-decoration-none text-dark">
+                                    @item.LeadName
+                                </a>
+                            </td>
+                            <td>@(item.CompanyName ?? "—")</td>
+                            <td>
+                                <div><i class="bi bi-envelope me-1 text-muted"></i>@item.Email</div>
+                                <div><small class="text-muted"><i class="bi bi-telephone me-1"></i>@item.Phone</small></div>
+                            </td>
+                            <td><span class="badge bg-light text-dark border">@item.Source</span></td>
+                            <td>
+                                @if (item.Status == "Converted")
+                                {
+                                    <span class="badge bg-success"><i class="bi bi-check2-all me-1"></i>Converted</span>
+                                }
+                                else if (item.Status == "Qualified")
+                                {
+                                    <span class="badge badge-subtle-primary fw-bold">Qualified</span>
+                                }
+                                else if (item.Status == "Lost")
+                                {
+                                    <span class="badge badge-subtle-danger">Lost</span>
+                                }
+                                else
+                                {
+                                    <span class="badge badge-subtle-warning text-dark">@item.Status</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="badge @(item.Priority == "High" ? "bg-danger" : (item.Priority == "Medium" ? "bg-warning text-dark" : "bg-secondary"))">
+                                    @item.Priority
+                                </span>
+                            </td>
+                            <td class="fw-bold text-success">
+                                @item.ExpectedValue.ToString("C0")
+                            </td>
+                            <td>
+                                <small class="text-muted">@(item.AssignedUser?.FullName ?? "Unassigned")</small>
+                            </td>
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    @if (item.Status != "Converted")
+                                    {
+                                        <a asp-action="Convert" asp-route-id="@item.LeadId" class="btn btn-outline-success" title="Convert to Customer">
+                                            <i class="bi bi-arrow-repeat"></i> Convert
+                                        </a>
+                                    }
+                                    <a asp-action="Details" asp-route-id="@item.LeadId" class="btn btn-outline-secondary" title="Details">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a asp-action="Edit" asp-route-id="@item.LeadId" class="btn btn-outline-primary" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    @if (User.IsInRole("Admin") || User.IsInRole("Manager"))
+                                    {
+                                        <button type="button" class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal-@item.LeadId" title="Delete">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    }
+                                </div>
+
+                                <!-- Delete Confirmation Modal -->
+                                <div class="modal fade" id="deleteModal-@item.LeadId" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header border-0 pb-0">
+                                                <h5 class="modal-title fw-bold">Confirm Deletion</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                            </div>
+                                            <div class="modal-body text-start py-3">
+                                                Are you sure you want to delete lead <strong>@item.LeadName</strong> (@item.LeadCode)?
+                                            </div>
+                                            <div class="modal-footer border-0 pt-0">
+                                                <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Cancel</button>
+                                                <form asp-action="Delete" asp-route-id="@item.LeadId" method="post">
+                                                    <button type="submit" class="btn btn-sm btn-danger">Confirm Delete</button>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="10" class="text-center py-5 text-muted">
+                            <i class="bi bi-funnel fs-1 d-block mb-2 text-muted"></i>
+                            No lead records found matching your filters.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3">
+            <span class="small text-muted">Showing page @currentPage of @totalPages (@totalItems total leads)</span>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage - 1)" asp-route-search="@ViewBag.Search" asp-route-status="@ViewBag.Status">Previous</a>
+                </li>
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <li class="page-item @(p == currentPage ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@p" asp-route-search="@ViewBag.Search" asp-route-status="@ViewBag.Status">@p</a>
+                    </li>
+                }
+                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage + 1)" asp-route-search="@ViewBag.Search" asp-route-status="@ViewBag.Status">Next</a>
+                </li>
+            </ul>
+        </div>
+    }
+</div>

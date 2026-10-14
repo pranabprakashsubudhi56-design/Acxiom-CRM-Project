@@ -1,0 +1,115 @@
+@model IEnumerable<AcxiomCRM.ViewModels.UserListViewModel>
+@{
+    ViewData["Title"] = "User & Role Management";
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">User & Role Administration</h2>
+        <p class="text-muted mb-0">Manage system accounts, assign RBAC access roles, and administer account security policies.</p>
+    </div>
+    @if (User.IsInRole("Admin"))
+    {
+        <div>
+            <a asp-action="Create" class="btn btn-primary shadow-sm">
+                <i class="bi bi-person-plus-fill me-1"></i> Add New User
+            </a>
+        </div>
+    }
+</div>
+
+<!-- Search & Role Filter -->
+<div class="crm-card p-3 mb-4">
+    <form asp-action="Index" method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-6">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control border-start-0" placeholder="Search by name or email..." />
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="role" class="form-select">
+                <option value="">All Roles</option>
+                <option value="Admin" selected="@(ViewBag.Role == "Admin")">Admin</option>
+                <option value="Manager" selected="@(ViewBag.Role == "Manager")">Manager</option>
+                <option value="SalesExecutive" selected="@(ViewBag.Role == "SalesExecutive")">Sales Executive</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Users Table -->
+<div class="crm-card">
+    <div class="table-responsive">
+        <table class="table table-modern mb-0">
+            <thead>
+                <tr>
+                    <th>User</th>
+                    <th>Email Address</th>
+                    <th>Assigned Role</th>
+                    <th>Account Status</th>
+                    <th>Security / Lockout</th>
+                    <th>Registration Date</th>
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <th class="text-end">Actions</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in Model)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="avatar-circle">@(user.FullName.Length > 0 ? user.FullName[0].ToString().ToUpper() : "U")</span>
+                                <span class="fw-bold">@user.FullName</span>
+                            </div>
+                        </td>
+                        <td>@user.Email</td>
+                        <td>
+                            <span class="badge @(user.Role == "Admin" ? "bg-danger" : (user.Role == "Manager" ? "bg-warning text-dark" : "bg-primary"))">
+                                @user.Role
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge @(user.IsActive ? "badge-subtle-success" : "badge-subtle-danger")">
+                                @(user.IsActive ? "Active" : "Inactive")
+                            </span>
+                        </td>
+                        <td>
+                            @if (user.IsLockedOut)
+                            {
+                                <span class="badge bg-danger"><i class="bi bi-lock-fill me-1"></i>Locked Out</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-success border"><i class="bi bi-shield-check me-1"></i>Normal</span>
+                            }
+                        </td>
+                        <td>@user.CreatedDate.ToString("yyyy-MM-dd")</td>
+                        @if (User.IsInRole("Admin"))
+                        {
+                            <td class="text-end">
+                                <div class="btn-group btn-group-sm">
+                                    <a asp-action="Edit" asp-route-id="@user.Id" class="btn btn-outline-primary" title="Edit Profile & Role">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-action="ToggleLockout" asp-route-id="@user.Id" method="post" class="d-inline">
+                                        <button type="submit" class="btn @(user.IsLockedOut ? "btn-outline-success" : "btn-outline-warning")" title="@(user.IsLockedOut ? "Unlock Account" : "Lock Account")">
+                                            <i class="bi @(user.IsLockedOut ? "bi-unlock" : "bi-lock")"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

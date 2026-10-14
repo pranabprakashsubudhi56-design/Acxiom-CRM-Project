@@ -1,0 +1,130 @@
+@model IEnumerable<AcxiomCRM.Models.Activity>
+@{
+    ViewData["Title"] = "Activity Management";
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">Activity Log & Interaction History</h2>
+        <p class="text-muted mb-0">Record and review calls, meetings, emails, and tasks across customers and prospects.</p>
+    </div>
+    <div>
+        <a asp-action="Create" class="btn btn-primary shadow-sm">
+            <i class="bi bi-plus-circle me-1"></i> Log Activity
+        </a>
+    </div>
+</div>
+
+<!-- Search & Type Filter -->
+<div class="crm-card p-3 mb-4">
+    <form asp-action="Index" method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-5">
+            <div class="input-group">
+                <span class="input-group-text bg-light border-end-0"><i class="bi bi-search text-muted"></i></span>
+                <input type="text" name="search" value="@ViewBag.Search" class="form-control border-start-0" placeholder="Search subject or description..." />
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <select name="type" class="form-select">
+                <option value="">All Activity Types</option>
+                <option value="Call" selected="@(ViewBag.Type == "Call")">Call</option>
+                <option value="Meeting" selected="@(ViewBag.Type == "Meeting")">Meeting</option>
+                <option value="Email" selected="@(ViewBag.Type == "Email")">Email</option>
+                <option value="Task" selected="@(ViewBag.Type == "Task")">Task</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="status" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="Completed" selected="@(ViewBag.Status == "Completed")">Completed</option>
+                <option value="Planned" selected="@(ViewBag.Status == "Planned")">Planned</option>
+                <option value="Cancelled" selected="@(ViewBag.Status == "Cancelled")">Cancelled</option>
+            </select>
+        </div>
+        <div class="col-12 col-md-2 d-flex gap-2">
+            <button type="submit" class="btn btn-primary flex-grow-1">Filter</button>
+            <a asp-action="Index" class="btn btn-outline-secondary">Reset</a>
+        </div>
+    </form>
+</div>
+
+<!-- Activities Feed -->
+<div class="crm-card">
+    <div class="table-responsive">
+        <table class="table table-modern mb-0">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Subject & Summary</th>
+                    <th>Associated Contact / Account</th>
+                    <th>Date & Time</th>
+                    <th>Status</th>
+                    <th>Logged By</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        var badgeColor = item.ActivityType switch
+                        {
+                            "Call" => "bg-primary",
+                            "Meeting" => "bg-success",
+                            "Email" => "bg-info",
+                            _ => "bg-secondary"
+                        };
+
+                        <tr>
+                            <td>
+                                <span class="badge @badgeColor">@item.ActivityType</span>
+                            </td>
+                            <td>
+                                <div class="fw-bold">@item.Subject</div>
+                                <div class="text-muted small">@(item.Description ?? "No description logged.")</div>
+                            </td>
+                            <td>
+                                @if (item.Customer != null)
+                                {
+                                    <a asp-controller="Customers" asp-action="Details" asp-route-id="@item.CustomerId" class="text-decoration-none">
+                                        <i class="bi bi-building me-1"></i>@item.Customer.CustomerName
+                                    </a>
+                                }
+                                else if (item.Lead != null)
+                                {
+                                    <a asp-controller="Leads" asp-action="Details" asp-route-id="@item.LeadId" class="text-decoration-none">
+                                        <i class="bi bi-funnel me-1"></i>@item.Lead.LeadName
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td>
+                                <i class="bi bi-calendar3 me-1 text-muted"></i>@item.ActivityDate.ToString("g")
+                            </td>
+                            <td>
+                                <span class="badge @(item.Status == "Completed" ? "badge-subtle-success" : "badge-subtle-warning")">
+                                    @item.Status
+                                </span>
+                            </td>
+                            <td>
+                                <small class="text-muted">@(item.AssignedUser?.FullName ?? "System")</small>
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-chat-square-text fs-1 d-block mb-2 text-muted"></i>
+                            No activities logged yet.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

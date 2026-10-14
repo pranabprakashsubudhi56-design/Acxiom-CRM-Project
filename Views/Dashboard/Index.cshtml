@@ -1,0 +1,408 @@
+@model AcxiomCRM.ViewModels.DashboardViewModel
+@{
+    ViewData["Title"] = "Executive Dashboard";
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1 d-flex align-items-center gap-2">
+            <span>Sales & CRM Dashboard</span>
+            <span class="badge @(Model.UserRole == "Admin" ? "bg-danger" : (Model.UserRole == "Manager" ? "bg-warning text-dark" : "bg-primary")) fs-7 text-uppercase">
+                @Model.UserRole Scope
+            </span>
+        </h2>
+        <p class="text-muted mb-0">Welcome back, <strong>@Model.UserName</strong>! Here is your real-time performance summary.</p>
+    </div>
+
+    <!-- Date Filters (Section 4.3 & 17.11) -->
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <div class="btn-group shadow-sm" role="group">
+            <a asp-action="Index" asp-route-dateFilter="Today" class="btn btn-sm @(Model.DateFilter == "Today" ? "btn-primary" : "btn-outline-secondary")">Today</a>
+            <a asp-action="Index" asp-route-dateFilter="ThisWeek" class="btn btn-sm @(Model.DateFilter == "ThisWeek" ? "btn-primary" : "btn-outline-secondary")">This Week</a>
+            <a asp-action="Index" asp-route-dateFilter="ThisMonth" class="btn btn-sm @(Model.DateFilter == "ThisMonth" ? "btn-primary" : "btn-outline-secondary")">This Month</a>
+            <a asp-action="Index" asp-route-dateFilter="AllTime" class="btn btn-sm @(Model.DateFilter == "AllTime" ? "btn-primary" : "btn-outline-secondary")">All Time</a>
+        </div>
+        <div class="dropdown">
+            <button class="btn btn-sm btn-outline-primary dropdown-toggle shadow-sm" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-calendar3"></i> Custom
+            </button>
+            <div class="dropdown-menu dropdown-menu-end p-3 shadow-lg border-0" style="min-width: 280px;">
+                <form asp-action="Index" method="get">
+                    <input type="hidden" name="dateFilter" value="Custom" />
+                    <div class="mb-2">
+                        <label class="form-label small">Start Date</label>
+                        <input type="date" name="startDate" class="form-control form-control-sm" value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small">End Date</label>
+                        <input type="date" name="endDate" class="form-control form-control-sm" value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">Apply Filter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Follow-Up Alert Banner if pending/overdue -->
+@if (Model.OverdueFollowUpsCount > 0 || Model.TodayFollowUpsCount > 0)
+{
+    <div class="alert alert-warning border-0 shadow-sm d-flex align-items-center justify-content-between p-3 mb-4">
+        <div class="d-flex align-items-center gap-3">
+            <div class="bg-warning text-dark p-2 rounded-circle fs-4">
+                <i class="bi bi-alarm-fill"></i>
+            </div>
+            <div>
+                <strong>Action Needed:</strong>
+                @if (Model.OverdueFollowUpsCount > 0)
+                {
+                    <span class="text-danger fw-bold me-2"><i class="bi bi-exclamation-circle-fill"></i> @Model.OverdueFollowUpsCount Overdue Follow-ups!</span>
+                }
+                @if (Model.TodayFollowUpsCount > 0)
+                {
+                    <span class="text-dark fw-bold"><i class="bi bi-calendar-event"></i> @Model.TodayFollowUpsCount Scheduled For Today</span>
+                }
+            </div>
+        </div>
+        <a asp-controller="FollowUps" asp-action="Index" asp-route-filter="overdue" class="btn btn-sm btn-dark">View Follow-Ups</a>
+    </div>
+}
+
+<!-- Mandatory 8 KPI Cards (Section 17.11) -->
+<div class="row g-3 mb-4">
+    <!-- Card 1: Total Customers -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Total Customers</div>
+                <div class="kpi-value text-primary">@Model.TotalCustomers</div>
+            </div>
+            <div class="kpi-icon-box bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-people-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 2: Total Leads -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Total Leads</div>
+                <div class="kpi-value text-info">@Model.TotalLeads</div>
+            </div>
+            <div class="kpi-icon-box bg-info bg-opacity-10 text-info">
+                <i class="bi bi-funnel-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3: Open Leads -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Open Leads</div>
+                <div class="kpi-value text-warning">@Model.OpenLeads</div>
+            </div>
+            <div class="kpi-icon-box bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-lightning-charge-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4: Total Opportunities -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Total Opportunities</div>
+                <div class="kpi-value text-dark">@Model.TotalOpportunities</div>
+            </div>
+            <div class="kpi-icon-box bg-secondary bg-opacity-10 text-dark">
+                <i class="bi bi-briefcase-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 5: Open Opportunities -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Open Opportunities</div>
+                <div class="kpi-value text-primary">@Model.OpenOpportunities</div>
+            </div>
+            <div class="kpi-icon-box bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-folder-check"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 6: Won Opportunities -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Won Opportunities</div>
+                <div class="kpi-value text-success">@Model.WonOpportunities</div>
+            </div>
+            <div class="kpi-icon-box bg-success bg-opacity-10 text-success">
+                <i class="bi bi-trophy-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 7: Lost Opportunities -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Lost Opportunities</div>
+                <div class="kpi-value text-danger">@Model.LostOpportunities</div>
+            </div>
+            <div class="kpi-icon-box bg-danger bg-opacity-10 text-danger">
+                <i class="bi bi-x-circle-fill"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 8: Total Pipeline Value -->
+    <div class="col-6 col-md-3">
+        <div class="kpi-card">
+            <div>
+                <div class="kpi-label">Total Pipeline Value</div>
+                <div class="kpi-value text-success" title="Weighted: @Model.WeightedPipelineValue.ToString("C")">
+                    @Model.TotalPipelineValue.ToString("C0")
+                </div>
+                <small class="text-muted" style="font-size:0.75rem;">Weighted: @Model.WeightedPipelineValue.ToString("C0")</small>
+            </div>
+            <div class="kpi-icon-box bg-success bg-opacity-10 text-success">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section 17.12 Dashboard Charts - Chart.js -->
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Lead Status -->
+    <div class="col-12 col-lg-4">
+        <div class="crm-card p-3 h-100">
+            <div class="card-header-clean mb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-pie-chart me-1 text-primary"></i> Lead Status</h6>
+                <span class="badge bg-light text-muted border">Distribution</span>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="leadStatusChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Opportunity Pipeline -->
+    <div class="col-12 col-lg-4">
+        <div class="crm-card p-3 h-100">
+            <div class="card-header-clean mb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-bar-chart me-1 text-info"></i> Opportunity Pipeline</h6>
+                <span class="badge bg-light text-muted border">Stage-wise Amount</span>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="pipelineChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 3: Monthly Sales -->
+    <div class="col-12 col-lg-4">
+        <div class="crm-card p-3 h-100">
+            <div class="card-header-clean mb-2">
+                <h6 class="fw-bold mb-0"><i class="bi bi-graph-up-arrow me-1 text-success"></i> Monthly Sales</h6>
+                <span class="badge bg-light text-muted border">Won Deals Trend</span>
+            </div>
+            <div style="height: 250px;">
+                <canvas id="monthlySalesChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bottom Grid: Upcoming Follow-Ups & Recent Activities -->
+<div class="row g-4">
+    <!-- Upcoming Follow-Ups -->
+    <div class="col-12 col-lg-7">
+        <div class="crm-card">
+            <div class="card-header-clean">
+                <h6 class="fw-bold mb-0"><i class="bi bi-calendar-check text-primary me-2"></i> Upcoming Follow-Up Schedule</h6>
+                <a asp-controller="FollowUps" asp-action="Create" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-plus"></i> Schedule
+                </a>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-modern mb-0">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>Contact / Account</th>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.UpcomingFollowUps.Any())
+                        {
+                            foreach (var item in Model.UpcomingFollowUps)
+                            {
+                                bool isOverdue = item.FollowUpDate < DateTime.UtcNow;
+                                <tr>
+                                    <td>
+                                        <div class="fw-semibold">@item.Subject</div>
+                                        <small class="text-muted">@(item.Remarks ?? "No remarks")</small>
+                                    </td>
+                                    <td>
+                                        @(item.Customer?.CustomerName ?? item.Lead?.LeadName ?? "General")
+                                    </td>
+                                    <td>
+                                        <span class="@(isOverdue ? "text-danger fw-bold" : "text-muted")">
+                                            @item.FollowUpDate.ToString("g")
+                                            @if (isOverdue)
+                                            {
+                                                <span class="badge bg-danger ms-1">Overdue</span>
+                                            }
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            @item.FollowUpType
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <form asp-controller="FollowUps" asp-action="Complete" asp-route-id="@item.FollowUpId" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-success py-1 px-2" title="Mark Completed">
+                                                <i class="bi bi-check2"></i>
+                                            </button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">
+                                    <i class="bi bi-check-circle fs-3 d-block text-success mb-2"></i>
+                                    No pending follow-ups! You are completely up to date.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Opportunities -->
+    <div class="col-12 col-lg-5">
+        <div class="crm-card">
+            <div class="card-header-clean">
+                <h6 class="fw-bold mb-0"><i class="bi bi-star text-warning me-2"></i> High-Value Opportunities</h6>
+                <a asp-controller="Opportunities" asp-action="Index" class="btn btn-sm btn-outline-secondary">View All</a>
+            </div>
+            <div class="p-3">
+                @if (Model.TopOpportunities.Any())
+                {
+                    foreach (var opp in Model.TopOpportunities)
+                    {
+                        <div class="p-3 mb-2 rounded bg-light border d-flex justify-content-between align-items-center">
+                            <div>
+                                <a asp-controller="Opportunities" asp-action="Details" asp-route-id="@opp.OpportunityId" class="fw-bold text-decoration-none text-dark">
+                                    @opp.OpportunityName
+                                </a>
+                                <div class="small text-muted">
+                                    @(opp.Customer?.CustomerName ?? "Prospect") &bull; Stage: <span class="badge bg-primary">@opp.Stage</span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <div class="fw-bold text-success fs-6">@opp.Amount.ToString("C0")</div>
+                                <small class="text-muted">Prob: @opp.Probability%</small>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="text-center py-4 text-muted">
+                        No active open opportunities found.
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Chart 1: Lead Status
+        const leadCtx = document.getElementById('leadStatusChart').getContext('2d');
+        new Chart(leadCtx, {
+            type: 'doughnut',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LeadStatusLabels)),
+                datasets: [{
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.LeadStatusCounts)),
+                    backgroundColor: ['#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444']
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } } }
+            }
+        });
+
+        // Chart 2: Opportunity Pipeline
+        const pipelineCtx = document.getElementById('pipelineChart').getContext('2d');
+        new Chart(pipelineCtx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OpportunityPipelineLabels)),
+                datasets: [{
+                    label: 'Amount ($)',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OpportunityPipelineAmounts)),
+                    backgroundColor: '#2563eb',
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+
+        // Chart 3: Monthly Sales
+        const salesCtx = document.getElementById('monthlySalesChart').getContext('2d');
+        new Chart(salesCtx, {
+            type: 'line',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlySalesLabels)),
+                datasets: [{
+                    label: 'Won Deals ($)',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.MonthlySalesAmounts)),
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    fill: true,
+                    tension: 0.35,
+                    borderWidth: 2.5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: '#f1f5f9' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    </script>
+}

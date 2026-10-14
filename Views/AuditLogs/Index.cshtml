@@ -1,0 +1,191 @@
+@model IEnumerable<AcxiomCRM.Models.AuditLog>
+@{
+    ViewData["Title"] = "Security & Business Audit Trail";
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int totalPages = ViewBag.TotalPages ?? 1;
+    int totalItems = ViewBag.TotalItems ?? 0;
+}
+
+<div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">Security & Business Audit Trail</h2>
+        <p class="text-muted mb-0">Append-only compliance log tracking logins, updates, conversions, and administrative actions.</p>
+    </div>
+    <div>
+        <a asp-action="ExportCsv"
+           asp-route-userFilter="@ViewBag.UserFilter"
+           asp-route-moduleFilter="@ViewBag.ModuleFilter"
+           asp-route-actionFilter="@ViewBag.ActionFilter"
+           asp-route-startDate="@ViewBag.StartDate"
+           asp-route-endDate="@ViewBag.EndDate"
+           class="btn btn-outline-success shadow-sm">
+            <i class="bi bi-file-earmark-excel me-1"></i> Export Audit Log (CSV)
+        </a>
+    </div>
+</div>
+
+<!-- Filter Bar (Section 4.9 & 17.16) -->
+<div class="crm-card p-3 mb-4">
+    <form asp-action="Index" method="get" class="row g-2 align-items-center">
+        <div class="col-12 col-md-3">
+            <input type="text" name="userFilter" value="@ViewBag.UserFilter" class="form-control" placeholder="Filter by username/email..." />
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="moduleFilter" class="form-select" asp-items="ViewBag.Modules">
+                <option value="">All Modules</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <select name="actionFilter" class="form-select" asp-items="ViewBag.Actions">
+                <option value="">All Actions</option>
+            </select>
+        </div>
+        <div class="col-6 col-md-2">
+            <input type="date" name="startDate" value="@ViewBag.StartDate" class="form-control" placeholder="Start Date" />
+        </div>
+        <div class="col-6 col-md-2">
+            <input type="date" name="endDate" value="@ViewBag.EndDate" class="form-control" placeholder="End Date" />
+        </div>
+        <div class="col-12 col-md-1 d-flex gap-1">
+            <button type="submit" class="btn btn-primary w-100"><i class="bi bi-filter"></i></button>
+            <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise"></i></a>
+        </div>
+    </form>
+</div>
+
+<!-- Audit Trail Table -->
+<div class="crm-card">
+    <div class="table-responsive">
+        <table class="table table-modern mb-0 font-monospace small">
+            <thead>
+                <tr>
+                    <th>Log ID</th>
+                    <th>Timestamp (UTC)</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Module / Entity</th>
+                    <th>Result</th>
+                    <th>IP Address</th>
+                    <th>Activity Details</th>
+                    <th class="text-end">Payload</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.Any())
+                {
+                    foreach (var item in Model)
+                    {
+                        var actionBadge = item.Action switch
+                        {
+                            "Login" => "bg-success",
+                            "Failed Login" => "bg-danger",
+                            "Logout" => "bg-secondary",
+                            "Create" => "bg-primary",
+                            "Update" => "bg-warning text-dark",
+                            "Delete" => "bg-danger",
+                            "Convert" => "bg-info text-dark",
+                            "Security" or "Role Change" => "bg-purple text-white",
+                            _ => "bg-secondary"
+                        };
+
+                        <tr>
+                            <td>#@item.AuditLogId</td>
+                            <td>@item.CreatedDate.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td class="fw-bold font-sans-serif">@(item.UserName ?? "System")</td>
+                            <td>
+                                <span class="badge @actionBadge">@item.Action</span>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border">@item.EntityName</span>
+                            </td>
+                            <td>
+                                <span class="badge @(item.Result == "Success" ? "badge-subtle-success" : "badge-subtle-danger")">
+                                    @item.Result
+                                </span>
+                            </td>
+                            <td class="text-muted">@(item.IpAddress ?? "::1")</td>
+                            <td class="font-sans-serif" style="max-width: 320px;">
+                                @(item.Details ?? "—")
+                            </td>
+                            <td class="text-end">
+                                @if (!string.IsNullOrEmpty(item.OldValue) || !string.IsNullOrEmpty(item.NewValue))
+                                {
+                                    <button type="button" class="btn btn-xs btn-outline-secondary py-0 px-2" data-bs-toggle="modal" data-bs-target="#auditModal-@item.AuditLogId">
+                                        <i class="bi bi-code-slash"></i> View
+                                    </button>
+
+                                    <!-- Audit Diff Modal -->
+                                    <div class="modal fade" id="auditModal-@item.AuditLogId" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content text-start">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title fw-bold">Audit Payload #@item.AuditLogId</h5>
+                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    @if (!string.IsNullOrEmpty(item.OldValue))
+                                                    {
+                                                        <h6 class="fw-bold text-danger">Previous State:</h6>
+                                                        <pre class="bg-light p-2 rounded small">@item.OldValue</pre>
+                                                    }
+                                                    @if (!string.IsNullOrEmpty(item.NewValue))
+                                                    {
+                                                        <h6 class="fw-bold text-success mt-3">Updated State:</h6>
+                                                        <pre class="bg-light p-2 rounded small">@item.NewValue</pre>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="9" class="text-center py-5 text-muted">
+                            No audit records found matching query criteria.
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    @if (totalPages > 1)
+    {
+        <div class="card-footer bg-white border-top d-flex justify-content-between align-items-center py-3">
+            <span class="small text-muted">Showing page @currentPage of @totalPages (@totalItems total records)</span>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage - 1)"
+                       asp-route-userFilter="@ViewBag.UserFilter" asp-route-moduleFilter="@ViewBag.ModuleFilter"
+                       asp-route-actionFilter="@ViewBag.ActionFilter" asp-route-startDate="@ViewBag.StartDate"
+                       asp-route-endDate="@ViewBag.EndDate">Previous</a>
+                </li>
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <li class="page-item @(p == currentPage ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@p"
+                           asp-route-userFilter="@ViewBag.UserFilter" asp-route-moduleFilter="@ViewBag.ModuleFilter"
+                           asp-route-actionFilter="@ViewBag.ActionFilter" asp-route-startDate="@ViewBag.StartDate"
+                           asp-route-endDate="@ViewBag.EndDate">@p</a>
+                    </li>
+                }
+                <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-page="@(currentPage + 1)"
+                       asp-route-userFilter="@ViewBag.UserFilter" asp-route-moduleFilter="@ViewBag.ModuleFilter"
+                       asp-route-actionFilter="@ViewBag.ActionFilter" asp-route-startDate="@ViewBag.StartDate"
+                       asp-route-endDate="@ViewBag.EndDate">Next</a>
+                </li>
+            </ul>
+        </div>
+    }
+</div>
